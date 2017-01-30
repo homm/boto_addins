@@ -59,10 +59,10 @@ class Lambda(object):
           @gen.coroutine
           def async_request():
             credentials = Credentials(access_key=<access_key>,
-                                             secret_key=<secret_key>)
+                                      secret_key=<secret_key>)
             payload = {'input_bucket': 'bucket', ...}
-            gif2video = Lambda('gif2video', credentials, <region>)
-            result = yield gif2video(payload)
+            service = Lambda('some-service', credentials, <region>)
+            result = yield service(payload)
             _ioloop.stop()
 
           _ioloop.add_callback(async_request)
