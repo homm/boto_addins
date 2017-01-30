@@ -5,12 +5,11 @@ try:
 except ImportError:
     from urlparse import urlparse
 
+from botocore.auth import SigV4Auth
+from botocore.awsrequest import AWSRequest
 from tornado import gen
 from tornado.curl_httpclient import CurlAsyncHTTPClient
 from tornado.httpclient import HTTPRequest
-
-from botocore.auth import SigV4Auth
-from botocore.awsrequest import AWSRequest
 
 
 class LambdaCallError(Exception):
