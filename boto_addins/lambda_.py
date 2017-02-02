@@ -99,7 +99,6 @@ class Lambda(object):
                                  data=request.body)
         signer = SigV4Auth(self._credentials, 'lambda', self.region)
         signer.add_auth(aws_request)
-
         request.headers.update(dict(aws_request.headers.items()))
 
     @gen.coroutine
@@ -114,9 +113,8 @@ class Lambda(object):
         :raise LambdaCallError: if any error on AWS Lambda side.
 
         """
-        url = self.url
         headers = {'Content-Type': 'application/json'}
-        request = HTTPRequest(url=url, headers=headers, method='POST',
+        request = HTTPRequest(url=self.url, headers=headers, method='POST',
                               body=json.dumps(payload))
         self._sign_request(request)
         response = yield self.client.fetch(request)
