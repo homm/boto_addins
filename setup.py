@@ -11,6 +11,7 @@ setup(
         # Please, DO NOT UPGRADE boto.
         # Async Dynamo Isn't compatible with anything above 2.30.0.
         'boto==2.30.0',
+        'YURL==0.13'
     ],
     keywords="aws amazon S3 SQS messages storage, "
              "lambda request-response invoke",

@@ -1,15 +1,13 @@
 import json
 
-try:
-    from urllib.parse import urlparse
-except ImportError:
-    from urlparse import urlparse
+from urllib import quote
 
 from botocore.auth import SigV4Auth
 from botocore.awsrequest import AWSRequest
 from tornado import gen
 from tornado.curl_httpclient import CurlAsyncHTTPClient
 from tornado.httpclient import HTTPRequest
+from yurl import URL
 
 
 class LambdaCallError(Exception):
@@ -33,12 +31,6 @@ class LambdaCallError(Exception):
 class Lambda(object):
     region = None
     API_VERSION = '2015-03-31'
-
-    _url_template = ('https://lambda.'
-                     '{region}.amazonaws.com/'
-                     '{api_version}/functions/'
-                     '{name}/invocations'
-                     '?Qualifier={qualifier}')
 
     def __init__(self, name, credentials, region, qualifier='$LATEST'):
         """Creates a client of AWS Lambda function with ability to invoke
@@ -77,25 +69,21 @@ class Lambda(object):
         self.region = region
         self._credentials = credentials
         self.client = CurlAsyncHTTPClient()
-        self.url = self._url_template.format(region=self.region,
-                                             api_version=self.API_VERSION,
-                                             name=self.name,
-                                             qualifier=qualifier)
 
-    def _sign_request(self, request):
-        """Sign request to AWS with SigV4Auth."""
-        url = urlparse(request.url)
-        path = url.path or '/'
-        if url.query:
-            querystring = '?' + url.query
+        if qualifier:
+            query = 'Qualifier={0}'.format(quote(qualifier))
         else:
-            querystring = ''
-        safe_url = "https://{location}{path}{query}".format(
-            location=url.netloc.split(':')[0],
-            path=path,
-            query=querystring)
+            query = None
+        self.url = URL(scheme='https',
+                       host='lambda.{0}.amazonaws.com'.format(region),
+                       path='{0}/functions/{1}/invocations'.format(
+                           self.API_VERSION, name),
+                       query=query)
+        self.url = str(self.url)
 
-        aws_request = AWSRequest(method=request.method, url=safe_url,
+    def __sign_request(self, request):
+        """Sign request to AWS with SigV4Auth."""
+        aws_request = AWSRequest(method=request.method, url=request.url,
                                  data=request.body)
         signer = SigV4Auth(self._credentials, 'lambda', self.region)
         signer.add_auth(aws_request)
@@ -116,7 +104,7 @@ class Lambda(object):
         headers = {'Content-Type': 'application/json'}
         request = HTTPRequest(url=self.url, headers=headers, method='POST',
                               body=json.dumps(payload))
-        self._sign_request(request)
+        self.__sign_request(request)
         response = yield self.client.fetch(request)
         error = response.headers.get('X-Amz-Function-Error', None)
         body = json.loads(response.body)
