@@ -109,8 +109,9 @@ class Lambda(object):
         error = response.headers.get('X-Amz-Function-Error', None)
         body = json.loads(response.body)
         if error:
-            error_type = '{0} {1}'.format(error, body['errorType'])
-            raise LambdaCallError(error_type=error_type,
-                                  message=body['errorMessage'],
-                                  trace=body['stackTrace'])
+            if 'errorType' in body:
+                error = '{0} {1}'.format(error, body['errorType'])
+            raise LambdaCallError(error_type=error,
+                                  message=body.get('errorMessage'),
+                                  trace=body.get('stackTrace'))
         raise gen.Return(body)
