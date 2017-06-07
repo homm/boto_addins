@@ -104,7 +104,7 @@ class Lambda(object):
         headers = {'Content-Type': 'application/json'}
         request = HTTPRequest(
             method='POST', url=self.url, headers=headers,
-            # Maximum execution duration per request 300 seconds
+            # Maximum execution duration per request is 300 seconds
             request_timeout=10 * 60,
             body=json.dumps(payload)
         )
