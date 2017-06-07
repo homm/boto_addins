@@ -102,8 +102,12 @@ class Lambda(object):
 
         """
         headers = {'Content-Type': 'application/json'}
-        request = HTTPRequest(url=self.url, headers=headers, method='POST',
-                              body=json.dumps(payload))
+        request = HTTPRequest(
+            method='POST', url=self.url, headers=headers,
+            # Maximum execution duration per request 300 seconds
+            request_timeout=10 * 60,
+            body=json.dumps(payload)
+        )
         self.__sign_request(request)
         response = yield self.client.fetch(request)
         error = response.headers.get('X-Amz-Function-Error', None)
