@@ -247,7 +247,8 @@ def async_http_download(source, destination,
             )
 
     except BaseException:
-        os.unlink(tmp_name)
+        if os.path.exists(tmp_name):
+            os.unlink(tmp_name)
         raise
 
     # concurrent downloading
