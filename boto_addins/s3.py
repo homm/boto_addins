@@ -76,7 +76,8 @@ class AsyncS3Connection(S3Connection):
 
     @gen.coroutine
     def async_copy_key(self, src_key, dst_key, temp_dir, metadata=None,
-                       policy=None, encrypt_key=False, headers=None):
+                       policy=None, encrypt_key=False, headers=None,
+                       request_timeout=10 * 60):
         headers = headers or {}
         if policy:
             headers[self.provider.acl_header] = policy
@@ -87,7 +88,8 @@ class AsyncS3Connection(S3Connection):
 
         url = src_key.generate_url(S3_TEMP_URL_TTL)
         destination = os.path.join(temp_dir, '_' + str(uuid4()))
-        yield async_http_download(url, destination)
+        yield async_http_download(url, destination,
+                                  request_timeout=request_timeout)
 
         @gen.coroutine
         def producer(write):
@@ -103,7 +105,8 @@ class AsyncS3Connection(S3Connection):
                 'PUT', dst_key.bucket.name, dst_key.name,
                 headers=headers, body_producer=producer,
                 content_length=src_key.size,
-                request_timeout=10 * 60,  # Timeout for whole request, not tcp.
+                # Timeout for whole request, not tcp.
+                request_timeout=request_timeout,
             )
         finally:
             if os.path.exists(destination):
