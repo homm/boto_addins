@@ -164,13 +164,16 @@ class AsyncBucket(Bucket):
         raise gen.Return(policy)
 
     @gen.coroutine
-    def async_download_key(self, key, path):
+    def async_download_key(self, key, path,
+                           request_timeout=10 * 60, attempts=3):
         # Get shared downloading.
         future = self._downloading_files.get(key.name)
 
         if future is None:
             url = key.generate_url(S3_TEMP_URL_TTL)
-            future = async_http_download(url, path)
+            future = async_http_download(
+                url, path, request_timeout=request_timeout, attempts=attempts,
+            )
 
             # Share downloading.
             self._downloading_files[key.name] = future
@@ -214,7 +217,8 @@ def fetch_request(request, client=None, retry_callback=None,
 
 
 @gen.coroutine
-def async_http_download(source, destination, attempts=3):
+def async_http_download(source, destination,
+                        request_timeout=10 * 60, attempts=3):
     tmp_name = '{}.{}'.format(destination, str(uuid4())[:8])
 
     try:
@@ -228,8 +232,10 @@ def async_http_download(source, destination, attempts=3):
             yield fetch_request(
                 httpclient.HTTPRequest(
                     source,
-                    streaming_callback=iobuffer.write,  # Direct write to file.
-                    request_timeout=10 * 60,  # Timeout for whole request, not tcp.
+                    # Direct write to file.
+                    streaming_callback=iobuffer.write,
+                    # Timeout for whole request, not tcp.
+                    request_timeout=request_timeout,
                 ),
                 client=curl_httpclient.CurlAsyncHTTPClient(),
                 retry_callback=reset_iobuffer,
