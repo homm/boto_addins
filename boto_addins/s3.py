@@ -60,7 +60,8 @@ class AsyncS3Connection(S3Connection):
 
     def async_set_contents_from_file(self, bucket, key_name, fp, headers=None,
                                      policy=None, encrypt_key=False,
-                                     metadata=None, attempts=3):
+                                     metadata=None, attempts=3,
+                                     request_timeout=10 * 60):
         headers = headers or {}
         if policy:
             headers[self.provider.acl_header] = policy
@@ -71,7 +72,7 @@ class AsyncS3Connection(S3Connection):
 
         return self.generate_async_request(
             'PUT', bucket, key_name, headers=headers, body=fp.read(),
-            attempts=attempts,
+            request_timeout=request_timeout, attempts=attempts,
         )
 
     @gen.coroutine
@@ -158,7 +159,7 @@ class AsyncBucket(Bucket):
 
         resp = yield self.connection.generate_async_request(
             'GET', self.name, key_name, query_args=query_args, headers=headers,
-            attempts=attempts
+            attempts=attempts,
         )
 
         policy = Policy(self)
