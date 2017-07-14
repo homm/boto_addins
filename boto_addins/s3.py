@@ -192,8 +192,7 @@ class AsyncKey(Key):
 
 
 @gen.coroutine
-def fetch_request(request, client=None, retry_callback=None,
-                  attempts=1, attempts_sleep=0.2):
+def fetch_request(request, client=None, retry_callback=None, attempts=1):
     if client is None:
         client = simple_httpclient.SimpleAsyncHTTPClient()
 
@@ -201,11 +200,16 @@ def fetch_request(request, client=None, retry_callback=None,
     request.connect_timeout = 5 if attempts > 1 else 20
 
     while attempts:
+        wait_before_retry = 0
         try:
             resp = yield client.fetch(request)
         except httpclient.HTTPError as e:
             # retry on s3 errors
-            if e.code not in (500, 599):
+            if e.code == 500:
+                wait_before_retry = 0.2
+            elif e.code in (503, 599):
+                wait_before_retry = 1
+            else:
                 raise
         else:
             raise gen.Return(resp)
@@ -214,8 +218,8 @@ def fetch_request(request, client=None, retry_callback=None,
         if not attempts:
             raise
 
-        if attempts_sleep:
-            yield gen.sleep(attempts_sleep)
+        if wait_before_retry:
+            yield gen.sleep(wait_before_retry)
         if retry_callback:
             yield retry_callback(request, attempts)
 
