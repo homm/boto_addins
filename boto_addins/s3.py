@@ -3,6 +3,7 @@ import weakref
 import logging
 import xml.sax
 import urllib
+import socket
 from uuid import uuid4
 
 from boto.handler import XmlHandler
@@ -196,8 +197,14 @@ def fetch_request(request, client=None, retry_callback=None, attempts=1):
     if client is None:
         client = simple_httpclient.SimpleAsyncHTTPClient()
 
+    if attempts <= 0:
+        raise ValueError('attempts should be > 0')
+
     # Fail faster on connection if we can retry
     request.connect_timeout = 5 if attempts > 1 else 20
+
+    # Save exceptions history for further analysis
+    except_history = []
 
     while attempts:
         wait_before_retry = 0
@@ -211,12 +218,17 @@ def fetch_request(request, client=None, retry_callback=None, attempts=1):
                 wait_before_retry = 1
             else:
                 raise
+        except socket.error as e:
+            # retry
+            pass
+
         else:
             raise gen.Return(resp)
 
         attempts -= 1
         if not attempts:
             raise
+        except_history.append(e)
 
         if wait_before_retry:
             yield gen.sleep(wait_before_retry)
