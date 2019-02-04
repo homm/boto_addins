@@ -7,7 +7,7 @@ setup(
     author_email="ak@uploadcare.com",
     description="Async proxy libraries for AWS services.",
     install_requires=[
-        'tornado_botocore==1.0.2',
+        'tornado-botocore==1.5.0',
         # Please, DO NOT UPGRADE boto.
         # Async Dynamo Isn't compatible with anything above 2.30.0.
         'boto==2.30.0',
