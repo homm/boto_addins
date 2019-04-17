@@ -7,11 +7,9 @@ setup(
     author_email="ak@uploadcare.com",
     description="Async proxy libraries for AWS services.",
     install_requires=[
-        'tornado-botocore==1.5.0',
-        # Please, DO NOT UPGRADE boto.
-        # Async Dynamo Isn't compatible with anything above 2.30.0.
-        'boto==2.30.0',
-        'YURL==0.13'
+        'tornado-botocore>=1.5.0',
+        'boto',
+        'YURL'
     ],
     keywords="aws amazon S3 SQS messages storage, "
              "lambda request-response invoke",
