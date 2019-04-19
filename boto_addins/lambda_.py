@@ -1,6 +1,8 @@
+from __future__ import unicode_literals
+
 import json
 
-from urllib import quote
+from six.moves.urllib_parse import quote
 
 from botocore.auth import SigV4Auth
 from botocore.awsrequest import AWSRequest

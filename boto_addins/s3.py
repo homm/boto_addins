@@ -1,10 +1,12 @@
+from __future__ import unicode_literals
+
 import os
 import weakref
 import logging
 import xml.sax
-import urllib
 import socket
 from uuid import uuid4
+from six.moves.urllib_parse import quote
 
 from boto.handler import XmlHandler
 from boto.s3.acl import Policy
@@ -132,8 +134,8 @@ class AsyncBucket(Bucket):
         if version_id:
             query_args_l.append('versionId=%s' % version_id)
         if response_headers:
-            for rk, rv in response_headers.iteritems():
-                query_args_l.append('%s=%s' % (rk, urllib.quote(rv)))
+            for rk, rv in response_headers.items():
+                query_args_l.append('%s=%s' % (rk, quote(rv)))
 
         query_args = '&'.join(query_args_l) or None
         try:
@@ -218,9 +220,10 @@ def fetch_request(request, client=None, retry_callback=None, attempts=1):
                 wait_before_retry = 1
             else:
                 raise
+            except_history.append(e)
         except socket.error as e:
             # retry
-            pass
+            except_history.append(e)
 
         else:
             raise gen.Return(resp)
@@ -228,7 +231,6 @@ def fetch_request(request, client=None, retry_callback=None, attempts=1):
         attempts -= 1
         if not attempts:
             raise
-        except_history.append(e)
 
         if wait_before_retry:
             yield gen.sleep(wait_before_retry)
@@ -242,7 +244,7 @@ def async_http_download(source, destination,
     tmp_name = '{}.{}'.format(destination, str(uuid4())[:8])
 
     try:
-        with open(tmp_name, 'w') as iobuffer:
+        with open(tmp_name, 'wb') as iobuffer:
 
             @gen.coroutine
             def reset_iobuffer(*args):
