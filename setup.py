@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from setuptools import setup
 
 setup(
@@ -7,9 +9,11 @@ setup(
     author_email="ak@uploadcare.com",
     description="Async proxy libraries for AWS services.",
     install_requires=[
+        'tornado>=4.0.0',
         'tornado-botocore>=1.5.0',
         'boto',
-        'YURL'
+        'YURL',
+        'six',
     ],
     keywords="aws amazon S3 SQS messages storage, "
              "lambda request-response invoke",
