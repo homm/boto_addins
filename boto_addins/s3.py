@@ -230,7 +230,7 @@ def fetch_request(request, client=None, retry_callback=None, attempts=1):
 
         attempts -= 1
         if not attempts:
-            raise
+            raise except_history[-1]
 
         if wait_before_retry:
             yield gen.sleep(wait_before_retry)
