@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name="boto_addins",
-    version="0.8.0",
+    version="0.8.1",
     author="Uploadcare",
     author_email="ak@uploadcare.com",
     description="Async proxy libraries for AWS services.",
