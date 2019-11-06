@@ -1,12 +1,10 @@
 from __future__ import unicode_literals
 
 import json
-
-from six.moves.urllib_parse import quote
+from urllib.parse import quote
 
 from botocore.auth import SigV4Auth
 from botocore.awsrequest import AWSRequest
-from tornado import gen
 from tornado.curl_httpclient import CurlAsyncHTTPClient
 from tornado.httpclient import HTTPRequest
 from yurl import URL
@@ -47,19 +45,14 @@ class Lambda(object):
 
         Usage example:
 
-          _ioloop = ioloop.IOLoop.instance()
-
-          @gen.coroutine
-          def async_request():
+          async def request():
             credentials = Credentials(access_key=<access_key>,
                                       secret_key=<secret_key>)
             payload = {'input_bucket': 'bucket', ...}
             service = Lambda('some-service', credentials, <region>)
-            result = yield service(payload)
-            _ioloop.stop()
+            result = await service(payload)
 
-          _ioloop.add_callback(async_request)
-          _ioloop.start()
+          ioloop.IOLoop.instance().run_sync(request)
 
         :param name: Name of the AWS Lambda function.
         :param credentials: AWS credentials.
@@ -91,8 +84,7 @@ class Lambda(object):
         signer.add_auth(aws_request)
         request.headers.update(dict(aws_request.headers.items()))
 
-    @gen.coroutine
-    def __call__(self, payload):
+    async def __call__(self, payload):
         """Make async call to synchronously invoke AWS Lambda function with
         `payload` data.
 
@@ -111,7 +103,7 @@ class Lambda(object):
             body=json.dumps(payload)
         )
         self.__sign_request(request)
-        response = yield self.client.fetch(request)
+        response = await self.client.fetch(request)
         error = response.headers.get('X-Amz-Function-Error', None)
         body = json.loads(response.body)
         if error:
@@ -120,4 +112,4 @@ class Lambda(object):
             raise LambdaCallError(error_type=error,
                                   message=body.get('errorMessage'),
                                   trace=body.get('stackTrace'))
-        raise gen.Return(body)
+        return body
