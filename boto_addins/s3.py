@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import os
 import weakref
 import logging
@@ -13,7 +11,7 @@ from boto.handler import XmlHandler
 from boto.s3.acl import Policy
 from boto.s3.connection import S3Connection, Bucket, Key
 from boto.utils import merge_meta
-from tornado import gen, httpclient, simple_httpclient, curl_httpclient
+from tornado import httpclient, simple_httpclient, curl_httpclient
 
 
 logger = logging.getLogger(__name__)
@@ -33,9 +31,9 @@ class AsyncS3Connection(S3Connection):
         return super(AsyncS3Connection, self).get_bucket(
             bucket_name, validate, headers)
 
-    def generate_async_request(self, method, bucket='', key='',
-                               query_args=None, headers=None,
-                               content_length=None, attempts=1, **kwargs):
+    def generate_request(self, method, bucket='', key='',
+                         query_args=None, headers=None,
+                         content_length=None, attempts=1, **kwargs):
         if isinstance(bucket, self.bucket_class):
             bucket = bucket.name
         if isinstance(key, Key):
@@ -56,11 +54,11 @@ class AsyncS3Connection(S3Connection):
         else:
             req.headers['Content-Length'] = str(content_length)
 
-        async_request = httpclient.HTTPRequest(
+        request = httpclient.HTTPRequest(
             "{0.protocol}://{0.host}{0.path}".format(req),
             req.method, req.headers, **kwargs
         )
-        return fetch_request(async_request, attempts=attempts)
+        return fetch_request(request, attempts=attempts)
 
     async def set_contents_from_file(self, bucket, key_name, fp, headers=None,
                                      policy=None, encrypt_key=False,
@@ -74,7 +72,7 @@ class AsyncS3Connection(S3Connection):
         if metadata is not None:
             headers = merge_meta(headers, metadata, self.provider)
 
-        return await self.generate_async_request(
+        return await self.generate_request(
             'PUT', bucket, key_name, headers=headers, body=fp.read(),
             request_timeout=request_timeout, attempts=attempts,
         )
@@ -92,8 +90,7 @@ class AsyncS3Connection(S3Connection):
 
         url = src_key.generate_url(S3_TEMP_URL_TTL)
         destination = os.path.join(temp_dir, '_' + str(uuid4()))
-        await http_download(url, destination,
-                            request_timeout=request_timeout)
+        await http_download(url, destination, request_timeout=request_timeout)
 
         async def producer(write):
             with open(destination, 'r') as f:
@@ -104,7 +101,7 @@ class AsyncS3Connection(S3Connection):
                     await write(data)
 
         try:
-            await self.generate_async_request(
+            await self.generate_request(
                 'PUT', dst_key.bucket.name, dst_key.name,
                 headers=headers, body_producer=producer,
                 content_length=src_key.size,
@@ -122,7 +119,7 @@ class AsyncBucket(Bucket):
         super(AsyncBucket, self).__init__(connection, name, key_class=AsyncKey)
 
     async def get_key_contents(self, key_name, attempts=3, **kwargs):
-        return await self.connection.generate_async_request(
+        return await self.connection.generate_request(
             'GET', self.name, key_name, attempts=attempts, **kwargs
         )
 
@@ -137,7 +134,7 @@ class AsyncBucket(Bucket):
 
         query_args = '&'.join(query_args_l) or None
         try:
-            response = await self.connection.generate_async_request(
+            response = await self.connection.generate_request(
                 'HEAD', self.name, key_name,
                 headers=headers, query_args=query_args, attempts=attempts,
             )
@@ -157,7 +154,7 @@ class AsyncBucket(Bucket):
         if version_id:
             query_args += '&versionId=%s' % version_id
 
-        resp = await self.connection.generate_async_request(
+        resp = await self.connection.generate_request(
             'GET', self.name, key_name, query_args=query_args, headers=headers,
             attempts=attempts,
         )
@@ -228,7 +225,7 @@ async def fetch_request(request, client=None, retry_callback=None, attempts=1):
             raise except_history[-1]
 
         if wait_before_retry:
-            await gen.sleep(wait_before_retry)
+            await asyncio.sleep(wait_before_retry)
         if retry_callback:
             await retry_callback(request, attempts)
 
