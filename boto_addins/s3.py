@@ -10,7 +10,6 @@ from urllib.parse import quote
 from boto.handler import XmlHandler
 from boto.s3.acl import Policy
 from boto.s3.connection import S3Connection, Bucket, Key
-from boto.utils import merge_meta
 from tornado import httpclient, simple_httpclient, curl_httpclient
 
 
@@ -59,58 +58,6 @@ class AsyncS3Connection(S3Connection):
             req.method, req.headers, **kwargs
         )
         return fetch_request(request, attempts=attempts)
-
-    async def set_contents_from_file(self, bucket, key_name, fp, headers=None,
-                                     policy=None, encrypt_key=False,
-                                     metadata=None, attempts=3,
-                                     request_timeout=10 * 60):
-        headers = headers or {}
-        if policy:
-            headers[self.provider.acl_header] = policy
-        if encrypt_key:
-            headers[self.provider.server_side_encryption_header] = 'AES256'
-        if metadata is not None:
-            headers = merge_meta(headers, metadata, self.provider)
-
-        return await self.generate_request(
-            'PUT', bucket, key_name, headers=headers, body=fp.read(),
-            request_timeout=request_timeout, attempts=attempts,
-        )
-
-    async def copy_key(self, src_key, dst_key, temp_dir, metadata=None,
-                       policy=None, encrypt_key=False, headers=None,
-                       request_timeout=10 * 60):
-        headers = headers or {}
-        if policy:
-            headers[self.provider.acl_header] = policy
-        if encrypt_key:
-            headers[self.provider.server_side_encryption_header] = 'AES256'
-        if metadata is not None:
-            headers = merge_meta(headers, metadata, self.provider)
-
-        url = src_key.generate_url(S3_TEMP_URL_TTL)
-        destination = os.path.join(temp_dir, '_' + str(uuid4()))
-        await http_download(url, destination, request_timeout=request_timeout)
-
-        async def producer(write):
-            with open(destination, 'r') as f:
-                while True:
-                    data = f.read(DATA_SIZE)
-                    if not data:
-                        break
-                    await write(data)
-
-        try:
-            await self.generate_request(
-                'PUT', dst_key.bucket.name, dst_key.name,
-                headers=headers, body_producer=producer,
-                content_length=src_key.size,
-                # Timeout for whole request, not tcp.
-                request_timeout=request_timeout,
-            )
-        finally:
-            if os.path.exists(destination):
-                os.unlink(destination)
 
 
 class AsyncBucket(Bucket):
