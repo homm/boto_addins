@@ -159,7 +159,7 @@ async def fetch_request(request, client=None, retry_callback=None, attempts=1):
                 wait_before_retry = 1
             else:
                 if resp := e.response:
-                    # logging to rollbar
+                    # Put values to local variables for better logging in tb
                     headers, body = resp.headers, resp.body  # noqa: F841
                 raise
             except_history.append(e)
