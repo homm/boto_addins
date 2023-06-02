@@ -85,7 +85,7 @@ class AsyncBucket(Bucket):
                 'HEAD', self.name, key_name,
                 headers=headers, query_args=query_args, attempts=attempts,
             )
-        except httpclient.HTTPError as e:
+        except httpclient.HTTPClientError as e:
             if e.code == 404:
                 return False
             raise
@@ -151,13 +151,16 @@ async def fetch_request(request, client=None, retry_callback=None, attempts=1):
         wait_before_retry = 0
         try:
             resp = await client.fetch(request)
-        except httpclient.HTTPError as e:
+        except httpclient.HTTPClientError as e:
             # retry on s3 errors
             if e.code == 500:
                 wait_before_retry = 0.2
             elif e.code in (503, 599):
                 wait_before_retry = 1
             else:
+                if resp := e.response:
+                    # Put values to local variables for better logging in tb
+                    headers, body = resp.headers, resp.body  # noqa: F841
                 raise
             except_history.append(e)
         except socket.error as e:
@@ -167,8 +170,7 @@ async def fetch_request(request, client=None, retry_callback=None, attempts=1):
         else:
             return resp
 
-        attempts -= 1
-        if not attempts:
+        if not (attempts := attempts - 1):
             raise except_history[-1]
 
         if wait_before_retry:
